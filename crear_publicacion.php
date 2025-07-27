@@ -2,72 +2,63 @@
 session_start();
 
 if (!isset($_SESSION['usuario_id'])) {
-    header("Location: login.php");
+    header('Location: login.php');
     exit;
 }
 
-// Conexión a la base de datos
-$conexion = new mysqli('localhost', 'root', '', 'marketplace');
+$conexion = new mysqli("localhost", "root", "", "marketplace");
 if ($conexion->connect_error) {
     die("Error de conexión: " . $conexion->connect_error);
 }
 
-// Validar campos
-$titulo = trim($_POST['titulo']);
-$descripcion = trim($_POST['descripcion']);
-$precio = floatval($_POST['precio']);
-$telefono = trim($_POST['telefono']);
+// Recoger datos del formulario
+$titulo = $_POST['titulo'] ?? '';
+$descripcion = $_POST['descripcion'] ?? '';
+$precio = $_POST['precio'] ?? 0;
+$telefono = $_POST['telefono'] ?? '';
 $usuario_id = $_SESSION['usuario_id'];
 
-if (empty($titulo) || empty($descripcion) || $precio <= 0 || empty($telefono)) {
-    die("Todos los campos son obligatorios y deben ser válidos.");
+$imagenes = [];
+
+// Crear carpeta si no existe
+$carpeta = 'uploads/';
+if (!file_exists($carpeta)) {
+    mkdir($carpeta, 0777, true);
 }
 
-// Procesar imágenes
-$imagenes = [];
-$directorio = 'uploads/';
+// Subir hasta 5 imágenes
 for ($i = 1; $i <= 5; $i++) {
-    if (isset($_FILES["imagen$i"]) && $_FILES["imagen$i"]["error"] === UPLOAD_ERR_OK) {
-        $tmp = $_FILES["imagen$i"]["tmp_name"];
-        $nombreArchivo = uniqid("img_") . "_" . basename($_FILES["imagen$i"]["name"]);
-        $destino = $directorio . $nombreArchivo;
+    $inputName = "imagen$i";
+    if (!empty($_FILES[$inputName]['name'])) {
+        $nombreTmp = $_FILES[$inputName]['tmp_name'];
+        $nombreArchivo = basename($_FILES[$inputName]['name']);
+        $rutaDestino = $carpeta . time() . "_$i" . "_" . $nombreArchivo;
 
-        if (move_uploaded_file($tmp, $destino)) {
-            $imagenes[] = $destino;
-        } else {
-            $imagenes[] = null;
+        if (move_uploaded_file($nombreTmp, $rutaDestino)) {
+            $imagenes[] = $rutaDestino;
         }
-    } else {
-        $imagenes[] = null;
     }
 }
 
-// Insertar en base de datos
-$stmt = $conexion->prepare("INSERT INTO publicaciones 
-    (titulo, descripcion, precio, telefono, usuario_id, imagen1, imagen2, imagen3, imagen4, imagen5) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+// Insertar publicación
+$stmt = $conexion->prepare("INSERT INTO publicaciones (titulo, descripcion, precio, telefono, usuario_id) VALUES (?, ?, ?, ?, ?)");
+$stmt->bind_param("ssdsi", $titulo, $descripcion, $precio, $telefono, $usuario_id);
+$stmt->execute();
 
-$stmt->bind_param(
-    "ssdissssss",
-    $titulo,
-    $descripcion,
-    $precio,
-    $telefono,
-    $usuario_id,
-    $imagenes[0],
-    $imagenes[1],
-    $imagenes[2],
-    $imagenes[3],
-    $imagenes[4]
-);
+$publicacion_id = $stmt->insert_id;
+$stmt->close();
 
-if ($stmt->execute()) {
-    header("Location: dashboard.php?publicacion=ok");
-    exit;
-} else {
-    echo "Error al guardar la publicación: " . $stmt->error;
+// Insertar imágenes en tabla 'imagenes'
+if (!empty($imagenes)) {
+    $stmtImg = $conexion->prepare("INSERT INTO imagenes (publicacion_id, ruta_imagen) VALUES (?, ?)");
+    foreach ($imagenes as $ruta) {
+        $stmtImg->bind_param("is", $publicacion_id, $ruta);
+        $stmtImg->execute();
+    }
+    $stmtImg->close();
 }
 
-$stmt->close();
 $conexion->close();
+header("Location: dashboard.php");
+exit;
 ?>
