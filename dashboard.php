@@ -10,7 +10,7 @@ if (!isset($_SESSION['usuario_id'])) {
 // Cerrar sesión
 if (isset($_GET['logout'])) {
     session_destroy();
-    header('Location: login.php');
+    header('Location: index.php');
     exit;
 }
 ?>
