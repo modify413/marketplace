@@ -3,7 +3,7 @@ session_start();
 $errores = "";
 
 // Conexión a la base de datos
-$conexion = new mysqli('localhost', 'root', '', 'marketplace');
+$conexion = new mysqli('sql309.infinityfree.com', 'if0_39580339', 'Worldof2000', 'if0_39580339_marketplace');
 if ($conexion->connect_error) {
     die("Error de conexión: " . $conexion->connect_error);
 }

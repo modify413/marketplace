@@ -15,7 +15,7 @@ if (isset($_GET['logout'])) {
 }
 
 // Conexión a base de datos
-$conn = new mysqli("localhost", "root", "", "marketplace");
+$conn = new mysqli('sql309.infinityfree.com', 'if0_39580339', 'Worldof2000', 'if0_39580339_marketplace');
 if ($conn->connect_error) {
     die("Error de conexión: " . $conn->connect_error);
 }

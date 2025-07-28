@@ -5,7 +5,7 @@ if (!isset($_SESSION['usuario_id']) || !isset($_GET['id'])) {
     exit;
 }
 
-$conn = new mysqli("localhost", "root", "", "marketplace");
+$conn = new mysqli('sql309.infinityfree.com', 'if0_39580339', 'Worldof2000', 'if0_39580339_marketplace');
 if ($conn->connect_error) {
     die("Error: " . $conn->connect_error);
 }
