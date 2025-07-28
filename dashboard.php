@@ -54,6 +54,10 @@ $conn->close();
         <h1>Bienvenido, <?= htmlspecialchars($_SESSION['usuario_email']) ?></h1>
         <p>Estás en el panel principal.</p>
         <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#publicacionModal">Crear publicación</button>
+        <button class="btn btn-secondary mt-3" data-bs-toggle="modal" data-bs-target="#misPublicacionesModal">
+    Ver mis publicaciones
+</button>
+
     </div>
 
     <div class="row mt-5">
@@ -175,6 +179,67 @@ document.getElementById('formPublicacion').addEventListener('submit', function(e
     }
 });
 </script>
+
+<!-- Modal: Mis publicaciones -->
+<div class="modal fade" id="misPublicacionesModal" tabindex="-1" aria-labelledby="misPublicacionesModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="misPublicacionesModalLabel">Mis publicaciones</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <?php
+        $conn = new mysqli("localhost", "root", "", "marketplace");
+        if ($conn->connect_error) {
+            die("Error de conexión: " . $conn->connect_error);
+        }
+
+        $usuario_id = $_SESSION['usuario_id'];
+        $stmt = $conn->prepare("SELECT p.*, GROUP_CONCAT(f.ruta_imagen) AS imagenes 
+                                FROM publicaciones p 
+                                LEFT JOIN imagenes f ON p.id = f.publicacion_id 
+                                WHERE p.usuario_id = ? 
+                                GROUP BY p.id ORDER BY p.id DESC");
+        $stmt->bind_param("i", $usuario_id);
+        $stmt->execute();
+        $resultado = $stmt->get_result();
+
+        if ($resultado->num_rows > 0) {
+            echo '<div class="table-responsive"><table class="table table-bordered align-middle">';
+            echo '<thead class="table-light"><tr><th>Título</th><th>Descripción</th><th>Precio</th><th>Teléfono</th><th>Imágenes</th><th>Acciones</th></tr></thead><tbody>';
+            while ($row = $resultado->fetch_assoc()) {
+                $imagenes = $row['imagenes'] ? explode(',', $row['imagenes']) : [];
+
+                echo '<tr>';
+                echo '<td>' . htmlspecialchars($row['titulo']) . '</td>';
+                echo '<td>' . htmlspecialchars($row['descripcion']) . '</td>';
+                echo '<td>$' . number_format($row['precio'], 2) . '</td>';
+                echo '<td>' . htmlspecialchars($row['telefono']) . '</td>';
+                echo '<td>';
+                foreach ($imagenes as $img) {
+                    echo '<img src="' . htmlspecialchars($img) . '" class="img-thumbnail me-1 mb-1" width="60">';
+                }
+                echo '</td>';
+                echo '<td>
+                        <a href="editar_publicacion.php?id=' . $row['id'] . '" class="btn btn-warning btn-sm me-1">Editar</a>
+                        <a href="eliminar_publicacion.php?id=' . $row['id'] . '" class="btn btn-danger btn-sm" onclick="return confirm(\'¿Eliminar esta publicación y sus imágenes?\')">Eliminar</a>
+                      </td>';
+                echo '</tr>';
+            }
+            echo '</tbody></table></div>';
+        } else {
+            echo "<p>No tenés publicaciones todavía.</p>";
+        }
+
+        $stmt->close();
+        $conn->close();
+        ?>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 </body>
 </html>
