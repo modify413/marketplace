@@ -46,7 +46,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["id"])) {
     }
 
     $conn->close();
-    header("Location: test.php");
+    header("Location: dashboard.php");
     exit;
 }
 
