@@ -20,6 +20,8 @@ if ($conn->connect_error) {
     die("Error de conexión: " . $conn->connect_error);
 }
 
+$esAdmin = isset($_SESSION['es_admin']) && $_SESSION['es_admin'] == 1;
+
 // Obtener publicaciones
 $stmt = $conn->prepare("SELECT p.*, GROUP_CONCAT(f.ruta_imagen) AS imagenes FROM publicaciones p LEFT JOIN imagenes f ON p.id = f.publicacion_id GROUP BY p.id ORDER BY p.id DESC");
 $stmt->execute();
@@ -71,6 +73,13 @@ $conn->close();
                     <div class="card-body">
                         <h5 class="card-title"><?= htmlspecialchars($pub['titulo']) ?></h5>
                         <p class="card-text">$<?= number_format($pub['precio'], 2) ?></p>
+                        <!-- Botón de papelera para admins -->
+                        <?php if ($esAdmin): ?>
+                            <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1"
+                                onclick="event.stopPropagation(); mostrarModalEliminar(<?= $pub['id'] ?>)">
+                                🗑️
+                            </button>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -223,7 +232,10 @@ document.getElementById('formPublicacion').addEventListener('submit', function(e
                 echo '</td>';
                 echo '<td>
                         <a href="editar_publicacion.php?id=' . $row['id'] . '" class="btn btn-warning btn-sm me-1">Editar</a>
-                        <a href="eliminar_publicacion.php?id=' . $row['id'] . '" class="btn btn-danger btn-sm" onclick="return confirm(\'¿Eliminar esta publicación y sus imágenes?\')">Eliminar</a>
+                        <form method="POST" action="eliminar_publicacion.php" onsubmit="return confirm(\'¿Eliminar esta publicación y sus imágenes?\')" style="display:inline;">
+                            <input type="hidden" name="id" value="' . $row['id'] . '">
+                            <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                        </form>
                       </td>';
                 echo '</tr>';
             }
@@ -239,6 +251,35 @@ document.getElementById('formPublicacion').addEventListener('submit', function(e
     </div>
   </div>
 </div>
+
+<!-- Modal de Confirmación de Eliminación (solo admins) -->
+<div class="modal fade" id="modalEliminar" tabindex="-1" aria-labelledby="modalEliminarLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content border-danger">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="modalEliminarLabel">Confirmar Eliminación</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        ¿Estás seguro de que querés eliminar esta publicación?
+      </div>
+      <div class="modal-footer">
+        <form method="POST" action="eliminar_publicacion.php">
+          <input type="hidden" name="id" id="idPublicacionEliminar">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger">Eliminar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function mostrarModalEliminar(id) {
+    document.getElementById('idPublicacionEliminar').value = id;
+    new bootstrap.Modal(document.getElementById('modalEliminar')).show();
+}
+</script>
 
 
 </body>
